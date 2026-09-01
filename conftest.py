@@ -1,0 +1,2 @@
+# Presence of this file at the repo root puts the root on sys.path,
+# so `import games` works when running pytest from anywhere.

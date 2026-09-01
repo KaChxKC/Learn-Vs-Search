@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Trained tables & snapshots (distribute via GitHub Releases, not git history)
+*.pkl
+*.pkl.gz
+*.npz
+snapshots/
+# ...except a small whitelisted demo table, if we add one:
+!demo/*.pkl.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
