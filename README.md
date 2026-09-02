@@ -122,7 +122,7 @@ would bloat the repository. Instead:
 
 - [x] **Step 0** — repository skeleton
 - [x] **Step 1** — the `Game` interface + tic-tac-toe
-- [ ] **Step 2** — the Connect-4 board (5×4 and 5×5)
+- [x] **Step 2** — the Connect-4 board (5×4 and 5×5)
 - [ ] **Step 3** — hand-checked win-detection tests for Connect-4
 - [ ] **Step 4** — random agent + terminal play
 - [ ] **Step 5** — minimax
