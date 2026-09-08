@@ -70,3 +70,38 @@ def test_minimax_returns_a_legal_move_on_a_big_board():
     game = Connect4(5, 5)
     move = MinimaxAgent(depth=2).choose(game)
     assert move in game.legal_moves()
+
+
+# --- alpha-beta: same moves, fewer nodes (the Step 6 claim) -------------------
+
+def test_alphabeta_picks_the_same_moves_as_plain_minimax():
+    # From a variety of tic-tac-toe positions, pruning must never change the choice.
+    positions = [
+        TicTacToe(),
+        TicTacToe().apply(4),
+        TicTacToe().apply(0).apply(4),
+        TicTacToe().apply(4).apply(0).apply(8),
+    ]
+    for game in positions:
+        plain = MinimaxAgent(prune=False)
+        alphabeta = MinimaxAgent(prune=True)
+        assert plain.choose(game) == alphabeta.choose(game)
+        assert alphabeta.nodes <= plain.nodes
+
+
+def test_alphabeta_examines_far_fewer_nodes_on_an_empty_board():
+    plain = MinimaxAgent(prune=False)
+    alphabeta = MinimaxAgent(prune=True)
+    plain.choose(TicTacToe())
+    alphabeta.choose(TicTacToe())
+    assert alphabeta.nodes < plain.nodes            # strictly fewer - pruning works
+
+
+def test_alphabeta_matches_minimax_on_a_depth_limited_connect4_search():
+    game = Connect4(5, 4)
+    for m in [3, 3, 2]:
+        game = game.apply(m)
+    plain = MinimaxAgent(depth=4, prune=False)
+    alphabeta = MinimaxAgent(depth=4, prune=True)
+    assert plain.choose(game) == alphabeta.choose(game)
+    assert alphabeta.nodes <= plain.nodes

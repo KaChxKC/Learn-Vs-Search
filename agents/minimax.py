@@ -1,34 +1,28 @@
-"""Minimax - the first agent that actually thinks ahead.
+"""Minimax, with optional alpha-beta pruning.
 
-THE IDEA
---------
-Minimax assumes both players play perfectly. To score a position for the player whose
-turn it is, it asks: "for each move I could make, my opponent will then reply with THEIR
-best move, and so on, all the way to the end of the game." It plays out every line to a
-finish (win / lose / draw), then backs those results up the tree and plays the move that
-leads to the best guaranteed outcome.
+WHAT MINIMAX DOES (recap)
+-------------------------
+It scores every position from the perspective of the player about to move (+1 win, 0 draw,
+-1 loss) by playing every line to the end and backing the results up the tree. The key
+line is `value = -child_value`: my opponent's gain is my loss, so one recursive function
+(negamax) handles both players.
 
-THE TRICK WE USE (negamax)
---------------------------
-Instead of writing separate "maximise for X / minimise for O" code, we score every
-position FROM THE PERSPECTIVE OF THE PLAYER ABOUT TO MOVE, using just three values:
+WHAT ALPHA-BETA ADDS
+--------------------
+Plain minimax explores the ENTIRE tree, including branches it should already know are
+pointless. Alpha-beta carries two bounds down the search:
 
-    +1  this player can force a win
-     0  best play leads to a draw
-    -1  this player will lose to best play
+    alpha = the best score the side to move is already guaranteed elsewhere
+    beta  = the best score the opponent is already guaranteed elsewhere
 
-The key line is `value = -best_child_value`: my opponent's good news is my bad news, so
-whatever the position is worth to them after my move, it's worth the NEGATIVE of that to
-me. One recursive function handles both players. That symmetry is why it's called negamax.
+The moment a branch proves it can't beat what the opponent already has (`alpha >= beta`),
+we STOP searching it - any deeper look could only confirm it's too good for the opponent
+to ever allow. This is the "cutoff". It never changes which move is chosen (a branch is
+only abandoned once it's proven irrelevant), it just skips work.
 
-DEPTH LIMIT
------------
-`depth=None` searches all the way to the end of the game - perfect for a small solved
-game like tic-tac-toe. For big boards the full tree is astronomically large, so we pass a
-`depth` (how many moves to look ahead); when we run out of depth at a non-terminal
-position we fall back to a heuristic guess. For now that heuristic is a neutral 0 ("I
-can't see far enough to tell"), which we can improve later if a depth needs to play
-stronger.
+We keep a `prune` switch so we can run BOTH versions and compare them directly:
+identical moves, dramatically fewer nodes. `self.nodes` counts positions examined in the
+last `choose()` - that count is the data behind the alpha-beta efficiency graph.
 """
 
 from agents.base import Agent
@@ -37,46 +31,50 @@ _INF = float("inf")
 
 
 class MinimaxAgent(Agent):
-    def __init__(self, depth=None):
-        self.depth = depth                      # None = search to the end of the game
-        self.name = "minimax" if depth is None else f"minimax(d={depth})"
-        self.nodes = 0                          # positions examined in the last choose()
+    def __init__(self, depth=None, prune=True):
+        self.depth = depth          # None = search to the end of the game
+        self.prune = prune          # True = alpha-beta; False = plain minimax
+        kind = "alphabeta" if prune else "minimax"
+        self.name = kind if depth is None else f"{kind}(d={depth})"
+        self.nodes = 0              # positions examined in the last choose()
 
     def choose(self, game):
         self.nodes = 0
-        best_value = -_INF
-        best_move = None
+        alpha, beta = -_INF, _INF
+        best_value, best_move = -_INF, None
         for move in game.legal_moves():
-            # Value of this move = the negation of what the resulting position is worth
-            # to the OPPONENT (who moves next in the child position).
             child = game.apply(move)
-            value = -self._negamax(child, self._step(self.depth))
-            if value > best_value:
-                best_value = value
-                best_move = move
+            value = -self._negamax(child, self._step(self.depth), -beta, -alpha)
+            if value > best_value:          # strict '>' keeps tie-breaking identical
+                best_value, best_move = value, move
+            if best_value > alpha:          # tightening alpha lets children prune more
+                alpha = best_value
         return best_move
 
-    def _negamax(self, game, depth):
-        """How good is `game` for the player whose turn it is now? (+1 / 0 / -1)."""
+    def _negamax(self, game, depth, alpha, beta):
+        """Best value the player to move can force in `game`, within the (alpha, beta) window."""
         self.nodes += 1
 
-        # Base case 1: the game is over - a concrete, known answer.
         if game.is_terminal():
             if game.winner() is None:
-                return 0                        # a draw is worth nothing to either side
-            # If there's a winner at a terminal node, it's the player who just moved -
-            # so the player about to move here has already LOST.
-            return -1
+                return 0
+            return -1                        # someone just won -> player to move has lost
 
-        # Base case 2: we've looked as far ahead as we're allowed - guess.
         if depth == 0:
             return self._heuristic(game)
 
-        # Recursive case: try every move, keep the best value we can force.
         best = -_INF
         for move in game.legal_moves():
             child = game.apply(move)
-            best = max(best, -self._negamax(child, self._step(depth)))
+            # Search the child with the window flipped and negated - the opponent's
+            # alpha/beta are our beta/alpha, mirrored.
+            value = -self._negamax(child, self._step(depth), -beta, -alpha)
+            if value > best:
+                best = value
+            if best > alpha:
+                alpha = best
+            if self.prune and alpha >= beta:
+                break                        # cutoff: this branch can't matter
         return best
 
     @staticmethod
