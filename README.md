@@ -125,7 +125,7 @@ would bloat the repository. Instead:
 - [x] **Step 2** — the Connect-4 board (5×4 and 5×5)
 - [x] **Step 3** — hand-checked win-detection tests for Connect-4
 - [x] **Step 4** — random agent + terminal play
-- [ ] **Step 5** — minimax
+- [x] **Step 5** — minimax
 - [ ] **Step 6** — alpha-beta pruning + node counting
 - [ ] **Step 7** — Q-learning core + self-play loop
 - [ ] **Step 8** — validate the learner on tic-tac-toe

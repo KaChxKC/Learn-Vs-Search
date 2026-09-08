@@ -16,7 +16,7 @@ is exactly the "viewer, never a player" shape the Pygame UI will take later.
 import argparse
 
 from games import TicTacToe, Connect4, P1, P2, symbol
-from agents import RandomAgent, HumanAgent
+from agents import RandomAgent, HumanAgent, MinimaxAgent
 
 # Each board is a zero-argument builder, so we only construct the one that's chosen.
 BOARDS = {
@@ -25,10 +25,12 @@ BOARDS = {
     "5x5": lambda: Connect4(5, 5),
 }
 
-# Each agent builder takes the seed (random uses it; human ignores it).
+# Each agent builder takes the seed (random uses it; the others ignore it).
 AGENTS = {
     "human": lambda seed: HumanAgent(),
     "random": lambda seed: RandomAgent(seed),
+    "minimax": lambda seed: MinimaxAgent(),          # full-depth (great for tic-tac-toe)
+    "minimax3": lambda seed: MinimaxAgent(depth=3),  # depth-limited (for the big boards)
 }
 
 
