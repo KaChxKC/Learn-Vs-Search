@@ -127,7 +127,7 @@ would bloat the repository. Instead:
 - [x] **Step 4** — random agent + terminal play
 - [x] **Step 5** — minimax
 - [x] **Step 6** — alpha-beta pruning + node counting
-- [ ] **Step 7** — Q-learning core + self-play loop
+- [x] **Step 7** — Q-learning core + self-play loop
 - [ ] **Step 8** — validate the learner on tic-tac-toe
 - [ ] **Step 9** — scale to 5×4, beat a random player
 - [ ] **Step 10** — scale to 5×5 + symmetry folding

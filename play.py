@@ -14,9 +14,11 @@ is exactly the "viewer, never a player" shape the Pygame UI will take later.
 """
 
 import argparse
+import gzip
+import pickle
 
 from games import TicTacToe, Connect4, P1, P2, symbol
-from agents import RandomAgent, HumanAgent, MinimaxAgent
+from agents import RandomAgent, HumanAgent, MinimaxAgent, QLearningAgent
 
 # Each board is a zero-argument builder, so we only construct the one that's chosen.
 BOARDS = {
@@ -25,13 +27,23 @@ BOARDS = {
     "5x5": lambda: Connect4(5, 5),
 }
 
-# Each agent builder takes the seed (random uses it; the others ignore it).
+# Each agent builder takes (seed, load_path). Most ignore load_path; qlearn needs it.
 AGENTS = {
-    "human": lambda seed: HumanAgent(),
-    "random": lambda seed: RandomAgent(seed),
-    "minimax": lambda seed: MinimaxAgent(),          # full-depth (great for tic-tac-toe)
-    "minimax3": lambda seed: MinimaxAgent(depth=3),  # depth-limited (for the big boards)
+    "human": lambda seed, load: HumanAgent(),
+    "random": lambda seed, load: RandomAgent(seed),
+    "minimax": lambda seed, load: MinimaxAgent(),          # full-depth (great for tic-tac-toe)
+    "minimax3": lambda seed, load: MinimaxAgent(depth=3),  # depth-limited (for big boards)
+    "qlearn": lambda seed, load: _load_qlearn(load),       # a trained Q-table
 }
+
+
+def _load_qlearn(load_path):
+    if not load_path:
+        raise SystemExit("qlearn needs a trained table: pass --load qtable_<board>.pkl.gz")
+    with gzip.open(load_path, "rb") as f:
+        table = pickle.load(f)
+    # epsilon=0 -> always play the best-known move (no exploration when actually playing).
+    return QLearningAgent(epsilon=0.0, q=table)
 
 
 def play(game, x_agent, o_agent):
@@ -65,11 +77,13 @@ def main():
                         help="who plays O / player 2 (default: random)")
     parser.add_argument("--seed", type=int, default=None,
                         help="seed for random agents, for reproducible games")
+    parser.add_argument("--load", default=None,
+                        help="path to a trained Q-table (for a qlearn player)")
     args = parser.parse_args()
 
     game = BOARDS[args.board]()
-    x_agent = AGENTS[args.x](args.seed)
-    o_agent = AGENTS[args.o](args.seed)
+    x_agent = AGENTS[args.x](args.seed, args.load)
+    o_agent = AGENTS[args.o](args.seed, args.load)
     play(game, x_agent, o_agent)
 
 
