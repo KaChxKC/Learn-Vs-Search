@@ -48,6 +48,21 @@ def test_training_beats_a_random_opponent():
     assert losses < 0.15 * (wins + draws + losses)
 
 
+def test_resuming_keeps_and_extends_an_existing_table():
+    # Train a first table, then "resume" by continuing training on the same table -
+    # this is what train.py --resume does (it loads the table into a fresh agent's q).
+    first = QLearningAgent(alpha=0.2, epsilon=0.2, seed=0)
+    self_play_train(first, ttt, games=2000)
+    known_states = set(first.q)
+    assert known_states                              # it learned something
+
+    resumed = QLearningAgent(alpha=0.2, epsilon=0.2, seed=1, q=first.q)
+    self_play_train(resumed, ttt, games=2000)
+
+    assert len(resumed.q) >= len(known_states)       # the table only grows
+    assert known_states <= set(resumed.q)            # every prior state is still there
+
+
 def test_learning_actually_helps_versus_no_training():
     untrained = QLearningAgent(epsilon=0.0, seed=0)
     trained = QLearningAgent(alpha=0.2, epsilon=0.2, seed=0)

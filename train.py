@@ -5,15 +5,21 @@ Examples (run from the repo root):
     python train.py --board ttt --games 50000
     python train.py --board 5x4 --games 200000 --epsilon 0.2
     python train.py --board 5x5 --games 1000000 --out qtable_5x5.pkl.gz
+    python train.py --board 5x4 --games 200000 --resume   # keep training an existing table
 
 While it trains, it periodically plays the (greedy) agent against a random opponent and
 prints win/draw/loss - a quick sanity signal that learning is happening. This console
 readout is NOT the formal experiment logging (that's the Step 11 harness); it's just
 so you can watch progress. When done it saves the learned table (gzip-compressed pickle).
+
+By default each run starts from an EMPTY table. Pass --resume to instead load the existing
+table and keep training it, so practice accumulates across runs (useful for slowly
+building up a strong table on the big boards).
 """
 
 import argparse
 import gzip
+import os
 import pickle
 import time
 
@@ -41,12 +47,26 @@ def main():
     parser.add_argument("--validate", action="store_true",
                         help="after training, also test the agent against minimax (the "
                              "perfect player on tic-tac-toe)")
+    parser.add_argument("--resume", action="store_true",
+                        help="load the existing table and keep training it, instead of "
+                             "starting from an empty table")
     parser.add_argument("--out", default=None, help="output file (default: qtable_<board>.pkl.gz)")
     args = parser.parse_args()
 
     make = BOARDS[args.board]
+    out = args.out or f"qtable_{args.board}.pkl.gz"
+
+    # --resume loads the existing table so training continues from it; otherwise start empty.
+    table = None
+    if args.resume:
+        if not os.path.exists(out):
+            raise SystemExit(f"--resume: no existing table found at {out} to continue from")
+        with gzip.open(out, "rb") as f:
+            table = pickle.load(f)
+        print(f"Resuming from {out} - {len(table):,} states already learned.")
+
     agent = QLearningAgent(alpha=args.alpha, gamma=args.gamma, epsilon=args.epsilon,
-                           draw_reward=args.draw_reward, seed=args.seed)
+                           draw_reward=args.draw_reward, seed=args.seed, q=table)
     ruler = RandomAgent(seed=12345)
 
     chunk = max(1, args.games // args.checkpoints)
@@ -62,7 +82,6 @@ def main():
         print(f"{trained:>10,} | {len(agent.q):>8,} | {w:>5}/{d:>4}/{l:>5}      | {100*w/(w+d+l):>4.0f}%")
 
     elapsed = time.time() - start
-    out = args.out or f"qtable_{args.board}.pkl.gz"
     with gzip.open(out, "wb") as f:
         pickle.dump(agent.q, f)
     print(f"\nDone in {elapsed:.1f}s. Learned {len(agent.q):,} states.")
