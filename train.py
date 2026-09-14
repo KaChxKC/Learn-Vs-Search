@@ -18,7 +18,7 @@ import pickle
 import time
 
 from games import TicTacToe, Connect4
-from agents import RandomAgent, QLearningAgent, self_play_train, evaluate
+from agents import RandomAgent, MinimaxAgent, QLearningAgent, self_play_train, evaluate
 
 BOARDS = {
     "ttt": lambda: TicTacToe(),
@@ -38,6 +38,9 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--checkpoints", type=int, default=10,
                         help="how many progress readouts to print during training")
+    parser.add_argument("--validate", action="store_true",
+                        help="after training, also test the agent against minimax (the "
+                             "perfect player on tic-tac-toe)")
     parser.add_argument("--out", default=None, help="output file (default: qtable_<board>.pkl.gz)")
     args = parser.parse_args()
 
@@ -65,6 +68,17 @@ def main():
     print(f"\nDone in {elapsed:.1f}s. Learned {len(agent.q):,} states.")
     print(f"Saved table -> {out}")
     print(f"Play it:  python play.py --board {args.board} --x human --o qlearn --load {out}")
+
+    if args.validate:
+        # Full-depth minimax is perfect on tic-tac-toe; on bigger boards use a depth limit.
+        depth = None if args.board == "ttt" else 5
+        opponent = MinimaxAgent(depth=depth, seed=777)   # varied but still-perfect lines
+        w, d, l = evaluate(agent, opponent, make, games=100)
+        label = "full-depth minimax" if depth is None else f"minimax(depth={depth})"
+        print(f"\nValidation vs {label} (100 games, seats alternated 50/50):")
+        print(f"  wins {w}   draws {d}   losses {l}")
+        if args.board == "ttt":
+            print("  Against perfect play you can't win - the goal is ZERO losses.")
 
 
 if __name__ == "__main__":

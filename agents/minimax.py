@@ -25,31 +25,51 @@ identical moves, dramatically fewer nodes. `self.nodes` counts positions examine
 last `choose()` - that count is the data behind the alpha-beta efficiency graph.
 """
 
+import random
+
 from agents.base import Agent
 
 _INF = float("inf")
 
 
 class MinimaxAgent(Agent):
-    def __init__(self, depth=None, prune=True):
+    def __init__(self, depth=None, prune=True, seed=None):
         self.depth = depth          # None = search to the end of the game
         self.prune = prune          # True = alpha-beta; False = plain minimax
+        # seed=None -> deterministic (always the first best move). A seed makes it pick
+        # RANDOMLY among equally-optimal moves, so it plays varied (still perfect) games -
+        # useful for testing a learner against many different lines.
+        self._rng = random.Random(seed) if seed is not None else None
         kind = "alphabeta" if prune else "minimax"
         self.name = kind if depth is None else f"{kind}(d={depth})"
         self.nodes = 0              # positions examined in the last choose()
 
     def choose(self, game):
         self.nodes = 0
-        alpha, beta = -_INF, _INF
-        best_value, best_move = -_INF, None
+        if self._rng is None:
+            # Deterministic: tighten alpha across sibling moves (faster), keep first best.
+            alpha, beta = -_INF, _INF
+            best_value, best_move = -_INF, None
+            for move in game.legal_moves():
+                child = game.apply(move)
+                value = -self._negamax(child, self._step(self.depth), -beta, -alpha)
+                if value > best_value:      # strict '>' keeps tie-breaking identical
+                    best_value, best_move = value, move
+                if best_value > alpha:      # tightening alpha lets children prune more
+                    alpha = best_value
+            return best_move
+        # Randomized: score every move EXACTLY (full window per move so values are
+        # comparable), then pick uniformly among the moves that share the best value.
+        best_value = -_INF
+        scored = []
         for move in game.legal_moves():
             child = game.apply(move)
-            value = -self._negamax(child, self._step(self.depth), -beta, -alpha)
-            if value > best_value:          # strict '>' keeps tie-breaking identical
-                best_value, best_move = value, move
-            if best_value > alpha:          # tightening alpha lets children prune more
-                alpha = best_value
-        return best_move
+            value = -self._negamax(child, self._step(self.depth), -_INF, _INF)
+            scored.append((value, move))
+            if value > best_value:
+                best_value = value
+        best_moves = [m for v, m in scored if v == best_value]
+        return self._rng.choice(best_moves)
 
     def _negamax(self, game, depth, alpha, beta):
         """Best value the player to move can force in `game`, within the (alpha, beta) window."""
