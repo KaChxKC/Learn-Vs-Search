@@ -129,9 +129,16 @@ would bloat the repository. Instead:
 - [x] **Step 6** — alpha-beta pruning + node counting
 - [x] **Step 7** — Q-learning core + self-play loop
 - [x] **Step 8** — validate the learner on tic-tac-toe
-- [ ] **Step 9** — scale to 5×4, beat a random player
+- [x] **Step 9** — scale to 5×4, beat a random player
 - [ ] **Step 10** — scale to 5×5 + symmetry folding
 - [ ] **Step 11** — experiment harness + CSV/JSON logging
 - [ ] **Step 12** — plotting script for all figures
 - [ ] **Step 13** — hyperparameter sweeps
 - [ ] **Step 14** — Pygame UI
+- [ ] **Step 15** *(optional, post-project)* — web frontend + hosting, for a shareable
+  playable demo. A thin HTML/JS page backed by a small Python API (Flask/FastAPI) that
+  reuses the existing engine and agents unchanged — the browser just draws the board and
+  asks the server for moves. Runs on localhost with any table size; deployable later
+  (e.g. Vercel + a Python backend, or ship a small tic-tac-toe table as JSON for a
+  static, backend-free page). This is a portfolio/resume piece, **not** part of the
+  graded core — a web app earns no AI marks, so it comes strictly after Steps 0–14.
