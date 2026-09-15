@@ -114,6 +114,24 @@ class Connect4(Game):
     def state_key(self):
         return (self._board, self._to_move)
 
+    def _mirror(self, board):
+        """The board flipped left-right: cell (r, c) moves to (r, cols-1-c)."""
+        flipped = list(board)
+        for r in range(self.rows):
+            base = r * self.cols
+            for c in range(self.cols):
+                flipped[base + c] = board[base + (self.cols - 1 - c)]
+        return tuple(flipped)
+
+    def canonical(self):
+        # A board and its left-right mirror are the same game. Fold them onto one key by
+        # keeping whichever tuple is "smaller"; if we flip, columns map c <-> cols-1-c.
+        mirror = self._mirror(self._board)
+        if mirror < self._board:
+            move_map = {c: self.cols - 1 - c for c in self.legal_moves()}
+            return (mirror, self._to_move), move_map
+        return (self._board, self._to_move), None       # already canonical; no remapping
+
     def __str__(self):
         header = "  " + "   ".join(str(c) for c in range(self.cols))
         lines = [header]

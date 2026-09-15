@@ -50,6 +50,17 @@ class Game(ABC):
     def state_key(self):
         """A small hashable key identifying this position. Used as the Q-table key."""
 
+    def canonical(self):
+        """Return (canonical_key, move_map) for symmetry folding.
+
+        A board that has a symmetry (e.g. Connect-4's left-right mirror) can fold
+        equivalent positions onto ONE key, roughly halving the states a learner must
+        cover. `canonical_key` is the folded key; `move_map` maps this board's real moves
+        to the moves in the canonical frame, or is None when no folding is needed (the
+        identity). The default is no symmetry - override on boards that have one.
+        """
+        return self.state_key(), None
+
     def is_terminal(self):
         """True when the game is over: someone won, or there are no legal moves left."""
         return self.winner() is not None or not self.legal_moves()

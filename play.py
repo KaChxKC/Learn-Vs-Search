@@ -14,11 +14,9 @@ is exactly the "viewer, never a player" shape the Pygame UI will take later.
 """
 
 import argparse
-import gzip
-import pickle
 
 from games import TicTacToe, Connect4, P1, P2, symbol
-from agents import RandomAgent, HumanAgent, MinimaxAgent, QLearningAgent
+from agents import RandomAgent, HumanAgent, MinimaxAgent, QLearningAgent, load_table
 
 # Each board is a zero-argument builder, so we only construct the one that's chosen.
 BOARDS = {
@@ -40,10 +38,10 @@ AGENTS = {
 def _load_qlearn(load_path):
     if not load_path:
         raise SystemExit("qlearn needs a trained table: pass --load qtable_<board>.pkl.gz")
-    with gzip.open(load_path, "rb") as f:
-        table = pickle.load(f)
+    table, meta = load_table(load_path)
+    # Must fold the same way the table was trained, or its keys won't match.
     # epsilon=0 -> always play the best-known move (no exploration when actually playing).
-    return QLearningAgent(epsilon=0.0, q=table)
+    return QLearningAgent(epsilon=0.0, q=table, fold=meta.get("fold", False))
 
 
 def play(game, x_agent, o_agent):

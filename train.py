@@ -18,13 +18,14 @@ building up a strong table on the big boards).
 """
 
 import argparse
-import gzip
 import os
-import pickle
 import time
 
 from games import TicTacToe, Connect4
-from agents import RandomAgent, MinimaxAgent, QLearningAgent, self_play_train, evaluate
+from agents import (
+    RandomAgent, MinimaxAgent, QLearningAgent,
+    self_play_train, evaluate, save_table, load_table,
+)
 
 BOARDS = {
     "ttt": lambda: TicTacToe(),
@@ -50,6 +51,9 @@ def main():
     parser.add_argument("--resume", action="store_true",
                         help="load the existing table and keep training it, instead of "
                              "starting from an empty table")
+    parser.add_argument("--fold", action="store_true",
+                        help="fold left-right mirror positions onto one key (roughly "
+                             "halves the states and doubles coverage per game)")
     parser.add_argument("--out", default=None, help="output file (default: qtable_<board>.pkl.gz)")
     args = parser.parse_args()
 
@@ -58,15 +62,18 @@ def main():
 
     # --resume loads the existing table so training continues from it; otherwise start empty.
     table = None
+    fold = args.fold
     if args.resume:
         if not os.path.exists(out):
             raise SystemExit(f"--resume: no existing table found at {out} to continue from")
-        with gzip.open(out, "rb") as f:
-            table = pickle.load(f)
-        print(f"Resuming from {out} - {len(table):,} states already learned.")
+        table, meta = load_table(out)
+        if "fold" in meta:
+            fold = meta["fold"]     # match how this table was originally trained
+        print(f"Resuming from {out} - {len(table):,} states already learned"
+              f"{' (folded)' if fold else ''}.")
 
     agent = QLearningAgent(alpha=args.alpha, gamma=args.gamma, epsilon=args.epsilon,
-                           draw_reward=args.draw_reward, seed=args.seed, q=table)
+                           draw_reward=args.draw_reward, seed=args.seed, q=table, fold=fold)
     ruler = RandomAgent(seed=12345)
 
     chunk = max(1, args.games // args.checkpoints)
@@ -82,9 +89,9 @@ def main():
         print(f"{trained:>10,} | {len(agent.q):>8,} | {w:>5}/{d:>4}/{l:>5}      | {100*w/(w+d+l):>4.0f}%")
 
     elapsed = time.time() - start
-    with gzip.open(out, "wb") as f:
-        pickle.dump(agent.q, f)
-    print(f"\nDone in {elapsed:.1f}s. Learned {len(agent.q):,} states.")
+    save_table(out, agent.q, meta={"fold": fold, "board": args.board})
+    print(f"\nDone in {elapsed:.1f}s. Learned {len(agent.q):,} states"
+          f"{' (folded)' if fold else ''}.")
     print(f"Saved table -> {out}")
     print(f"Play it:  python play.py --board {args.board} --x human --o qlearn --load {out}")
 
