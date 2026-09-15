@@ -133,6 +133,6 @@ would bloat the repository. Instead:
 - [x] **Step 10** — scale to 5×5 + symmetry folding
 - [x] **Step 11** — experiment harness + CSV/JSON logging
 - [x] **Step 12** — plotting script for all figures
-- [ ] **Step 13** — hyperparameter sweeps
+- [x] **Step 13** — hyperparameter sweeps
 - [ ] **Step 14** — Pygame UI
 - [ ] **Step 15** *(optional)* — web frontend + hosting, for a shareable playable demo.
