@@ -132,7 +132,7 @@ would bloat the repository. Instead:
 - [x] **Step 9** — scale to 5×4, beat a random player
 - [x] **Step 10** — scale to 5×5 + symmetry folding
 - [x] **Step 11** — experiment harness + CSV/JSON logging
-- [ ] **Step 12** — plotting script for all figures
+- [x] **Step 12** — plotting script for all figures
 - [ ] **Step 13** — hyperparameter sweeps
 - [ ] **Step 14** — Pygame UI
 - [ ] **Step 15** *(optional)* — web frontend + hosting, for a shareable playable demo.
