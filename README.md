@@ -134,5 +134,5 @@ would bloat the repository. Instead:
 - [x] **Step 11** — experiment harness + CSV/JSON logging
 - [x] **Step 12** — plotting script for all figures
 - [x] **Step 13** — hyperparameter sweeps
-- [ ] **Step 14** — Pygame UI
+- [x] **Step 14** — Pygame UI
 - [ ] **Step 15** *(optional)* — web frontend + hosting, for a shareable playable demo.
