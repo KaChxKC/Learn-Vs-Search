@@ -24,7 +24,7 @@ import os
 import time
 
 from games import TicTacToe, Connect4
-from agents import MinimaxAgent, QLearningAgent, self_play_train, evaluate, save_table
+from agents import MinimaxAgent, QLearningAgent, self_play_train, evaluate_by_seat, save_table
 
 BOARDS = {
     "ttt": lambda: TicTacToe(),
@@ -32,7 +32,12 @@ BOARDS = {
     "5x5": lambda: Connect4(5, 5),
 }
 
-FIELDS = ["games_trained", "minimax_depth", "wins", "draws", "losses"]
+FIELDS = [
+    "games_trained", "minimax_depth", "wins", "draws", "losses",
+    "first_wins", "first_draws", "first_losses",      # agent moving first
+    "second_wins", "second_draws", "second_losses",   # agent moving second
+    "states",                                         # table size: how much of the board it has seen
+]
 
 
 def run_experiment(make_game, total_games, checkpoint, depths, eval_games=100,
@@ -63,14 +68,19 @@ def run_experiment(make_game, total_games, checkpoint, depths, eval_games=100,
         trained += n
 
         for depth, opponent in opponents:
-            w, d, l = evaluate(agent, opponent, make_game, games=eval_games)
+            (fw, fd, fl), (sw, sd, sl) = evaluate_by_seat(agent, opponent, make_game,
+                                                          games=eval_games)
             row = {"games_trained": trained, "minimax_depth": depth,
-                   "wins": w, "draws": d, "losses": l}
+                   "wins": fw + sw, "draws": fd + sd, "losses": fl + sl,
+                   "first_wins": fw, "first_draws": fd, "first_losses": fl,
+                   "second_wins": sw, "second_draws": sd, "second_losses": sl,
+                   "states": len(agent.q)}
             rows.append(row)
             if writer:
                 writer.writerow(row)
                 handle.flush()          # survive an early stop
             if progress:
+                w, d, l = fw + sw, fd + sd, fl + sl
                 print(f"  {trained:>9,} games | depth {depth}: {w:>3}W {d:>3}D {l:>3}L")
 
         if snapshot_dir:
@@ -101,6 +111,8 @@ def main():
     parser.add_argument("--draw-reward", type=float, default=0.0)
     parser.add_argument("--snapshots", action="store_true",
                         help="also save a table snapshot at each checkpoint (to snapshots/<board>/)")
+    parser.add_argument("--no-plot", action="store_true",
+                        help="don't draw the graphs automatically when the run finishes")
     parser.add_argument("--out", default=None, help="CSV path (default: logs/<board>.csv)")
     args = parser.parse_args()
 
@@ -119,7 +131,13 @@ def main():
                    draw_reward=args.draw_reward, csv_path=out,
                    snapshot_dir=snapshot_dir, progress=True)
     print(f"\nDone in {time.time() - start:.1f}s. Logged -> {out}")
-    print("Draw the graphs from it with the Step 12 plotting script.")
+    if args.no_plot:
+        print(f"Draw the graphs later with:  python plot.py --csv {out}")
+    else:
+        print("Drawing graphs...")
+        from plot import plot_all
+        plot_all(out)
+        print("Graphs saved to figures/ - open the Graphs page in the UI to see them.")
 
 
 if __name__ == "__main__":

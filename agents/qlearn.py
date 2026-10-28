@@ -153,20 +153,32 @@ def evaluate(agent, opponent, make_game, games=400, seed=0):
 
     Returns (wins, draws, losses) from the agent's point of view.
     """
-    wins = draws = losses = 0
+    first, second = evaluate_by_seat(agent, opponent, make_game, games)
+    return tuple(f + s for f, s in zip(first, second))
+
+
+def evaluate_by_seat(agent, opponent, make_game, games=400):
+    """Like evaluate, but split by seat. Returns (first, second).
+
+    `first` is (wins, draws, losses) when the agent moves first, `second` when it moves
+    second. Seats alternate exactly 50/50, which is what lets us quantify (and control for)
+    the first-move advantage.
+    """
+    first = [0, 0, 0]
+    second = [0, 0, 0]
     for i in range(games):
         game = make_game()
         if i % 2 == 0:
-            players, me = {P1: agent, P2: opponent}, P1
+            players, me, bucket = {P1: agent, P2: opponent}, P1, first
         else:
-            players, me = {P1: opponent, P2: agent}, P2
+            players, me, bucket = {P1: opponent, P2: agent}, P2, second
         while not game.is_terminal():
             game = game.apply(players[game.current_player()].choose(game))
         winner = game.winner()
         if winner is None:
-            draws += 1
+            bucket[1] += 1
         elif winner == me:
-            wins += 1
+            bucket[0] += 1
         else:
-            losses += 1
-    return wins, draws, losses
+            bucket[2] += 1
+    return tuple(first), tuple(second)

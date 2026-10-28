@@ -2,3 +2,6 @@ numpy
 matplotlib
 pygame-ce
 pytest
+
+# optional, for the Step 15 local web demo (web/server.py)
+flask

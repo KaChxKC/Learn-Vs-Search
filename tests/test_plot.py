@@ -44,3 +44,68 @@ def test_alpha_beta_writes_a_png(tmp_path):
     out = str(tmp_path / "ab.png")
     plot_alpha_beta(lambda: TicTacToe(), out, max_depth=4)
     assert os.path.exists(out) and os.path.getsize(out) > 0
+
+
+# --- more graphs: net score, outcomes, depth scaling, coverage, seat curves, comparison ---
+
+def _full_rows():
+    rows = []
+    for depth in (2, 4):
+        for i, games in enumerate((1000, 2000, 3000)):
+            w, d, l = 10 + 10 * i, 40, 50 - 10 * i
+            rows.append({
+                "games_trained": games, "minimax_depth": depth,
+                "wins": w, "draws": d, "losses": l,
+                "first_wins": w // 2 + 2, "first_draws": d // 2, "first_losses": l // 2,
+                "second_wins": w // 2 - 2, "second_draws": d // 2, "second_losses": l // 2,
+                "states": 5000 * (i + 1),
+            })
+    return rows
+
+
+def _check(path):
+    assert os.path.exists(path) and os.path.getsize(path) > 0
+
+
+def test_new_graphs_each_write_a_png(tmp_path):
+    from plot import (plot_net_score, plot_outcomes, plot_depth_scaling,
+                      plot_coverage, plot_seat_curves)
+    rows = _full_rows()
+    for name, fn in [("net", plot_net_score), ("out", plot_outcomes),
+                     ("depth", plot_depth_scaling), ("cov", plot_coverage),
+                     ("seat", plot_seat_curves)]:
+        out = str(tmp_path / f"{name}.png")
+        fn(rows, out)
+        _check(out)
+
+
+def test_depth_scaling_needs_two_depths(tmp_path):
+    import pytest
+    from plot import plot_depth_scaling
+    one_depth = [r for r in _full_rows() if r["minimax_depth"] == 2]
+    with pytest.raises(ValueError):
+        plot_depth_scaling(one_depth, str(tmp_path / "x.png"))
+
+
+def test_coverage_needs_the_states_column(tmp_path):
+    import pytest
+    from plot import plot_coverage
+    rows = [{k: v for k, v in r.items() if k != "states"} for r in _full_rows()]
+    with pytest.raises(ValueError):
+        plot_coverage(rows, str(tmp_path / "x.png"))
+
+
+def test_board_comparison_reads_several_csvs(tmp_path):
+    import csv as _csv
+    from plot import plot_board_comparison
+    paths = []
+    for name in ("ttt", "5x4"):
+        path = str(tmp_path / f"{name}.csv")
+        with open(path, "w", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=_INT_FIELDS)
+            w.writeheader()
+            w.writerow({"games_trained": 1000, "minimax_depth": 2, "wins": 30, "draws": 50, "losses": 20})
+        paths.append(path)
+    out = str(tmp_path / "cmp.png")
+    plot_board_comparison(paths, out)
+    _check(out)

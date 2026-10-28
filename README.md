@@ -64,38 +64,71 @@ Two design choices keep the code understandable and bug-resistant:
 ## Project layout
 
 ```
-games/       board engines — the Game interface (base.py) and each board
+games/        board engines — the Game interface (base.py) and each board
 agents/       the players: random, minimax, q-learning, human
 tests/        hand-checked correctness tests (run with pytest)
 train.py      run self-play training; produces a Q-table file
+experiment.py train + evaluate against minimax at checkpoints; logs CSV and draws graphs
+plot.py       draws every figure from the CSV logs
+sweep.py      hyperparameter sweeps (e.g. learning rate)
 play.py       play in the terminal (a debugging tool, not a deliverable)
-ui.py         a thin Pygame viewer over the finished agents (built last)
+ui.py         a thin Pygame viewer over the finished agents
+web/          local browser interface (Flask server + HTML/CSS/JS)
+logs/         experiment results (CSV)
+figures/      generated graphs (PNG)
+screenshots/  screenshots of the web interface
 ```
 
-The Pygame window is only a **viewer** — it loads a trained table and calls each agent's
-`choose(game)`. No game rules or AI live in it, which is why it is built last and is the
-safe thing to cut if time runs short. Planned modes: human-vs-learner, human-vs-search,
-and a learner-vs-search watch mode, with board, first-move, and search-depth selectors,
-plus a restart button.
+![System architecture](figures/architecture.png)
+
+The user interfaces (Pygame and web) are only **viewers** — they load a trained table and
+call each agent's `choose(game)`. No game rules or AI live in them. Modes: human vs
+minimax, human vs Q-learner, and Q-learner vs minimax / random watch modes, with board and
+search-depth selectors, a restart button, and a Results page that shows the generated
+graphs.
 
 ## Results and graphs
 
-The analysis lives in five figures, drawn by a plotting script from logged data (so
-experiments run once and plots are redrawn as often as needed):
+### Headline findings
 
-1. **Learning curve (headline)** — win/draw/loss rate vs. minimax as training progresses;
-   answers the research question.
-2. **Alpha-beta efficiency** — nodes searched by plain minimax vs. alpha-beta at each
-   depth; proof the pruning is correct.
-3. **Per-seat win rates** — first-mover vs. second-mover, quantifying (and controlling
-   for) the first-move advantage on a small board.
-4. **Hyperparameter sweeps** — how learning rate, exploration decay, and draw reward
-   affect convergence.
-5. **Depth-scaling (optional)** — how the trained learner holds up as the searcher looks
-   deeper.
+Net score = win% minus loss% against minimax (0 = even match), measured at the end of
+training (100,000 games for tic-tac-toe, 500,000 for each Connect-4 board).
+
+| Board | vs depth | Win / Draw / Loss | Net score |
+|-------|----------|-------------------|-----------|
+| Tic-tac-toe | 9 (perfect) | 0 / 200 / 0 | 0% (best possible: all draws) |
+| Tic-tac-toe | 1 and 2 | 181 / 19 / 0 and 92 / 108 / 0 | +90.5% and +46% |
+| Connect-4 5×4 | 2 / 4 / 6 | 31/95/74, 27/98/75, 26/90/84 | −21.5% / −24% / −29% |
+| Connect-4 5×5 | 2 / 4 | 13/12/75, 5/8/87 | −62% / −82% |
+
+- **Tic-tac-toe** is learned perfectly after roughly 30,000 self-play games; the table
+  holds 4,513 of the 4,520 non-terminal positions.
+- **5×4** improves steadily (−40.5% to −21.5% against depth 2) but is still behind search,
+  and the curves were still rising at 500,000 games.
+- **5×5** shows no improvement: the table grows ~6.7× (0.4M to 2.7M states) but covers only
+  about 0.0003% of possible configurations, so strength stays flat. Coverage, not memory,
+  is the limit of a tabular learner.
+- **Alpha-beta** returns the same move as plain minimax with about 97% fewer positions
+  searched at depth 7.
+
+### Figures
+
+Drawn by `plot.py` from the logged CSVs (so experiments run once and plots are redrawn as
+often as needed). `experiment.py` draws them automatically at the end of a run.
+
+- **Learning curve** — win/draw/loss rate vs. minimax as training progresses; answers the
+  research question.
+- **Net score** and **outcome mix** — strength and the win/draw/loss shares over training.
+- **Depth scaling** — how the finished learner holds up as the searcher looks deeper.
+- **Per-seat / first-move advantage** — first-mover vs. second-mover results.
+- **Coverage** — table size over training, and strength against table size.
+- **Board comparison** — the final result on each board side by side.
+- **Alpha-beta efficiency** — positions searched by plain minimax vs. alpha-beta by depth.
+- **Hyperparameter sweep** — how the learning rate affects convergence.
 
 Fairness matters on small boards, where going first is a real advantage: evaluation
 alternates the starting side exactly 50/50 so the numbers reflect skill, not seating.
+(Training is self-play, so one agent already plays both seats.)
 
 ## Setup
 
@@ -107,6 +140,29 @@ py -3.12 -m venv .venv
 pip install -r requirements.txt
 pytest                          # run the correctness tests
 ```
+
+## Running it
+
+```bash
+# Train a Q-table by self-play (saved to qtable_<board>.pkl.gz at the end of the run)
+python train.py --board 5x4 --games 500000
+python train.py --board 5x4 --games 500000 --resume     # keep training the saved table
+python train.py --board 5x5 --games 500000 --fold       # fold mirror positions (5x5)
+
+# Experiment: train a fresh agent, test it against minimax at checkpoints, log CSV, draw graphs
+python experiment.py --board 5x4 --games 500000 --depths 2,4,6 --eval-games 200
+
+# Cross-board comparison and alpha-beta efficiency figures
+python plot.py --compare logs/ttt.csv logs/5x4.csv logs/5x5.csv
+python plot.py --alpha-beta 5x4
+
+# Play it
+python web/server.py     # then open http://127.0.0.1:5000
+python ui.py             # Pygame window
+python play.py --board ttt --x human --o minimax
+```
+
+Boards: `ttt`, `5x4`, `5x5`. A table is only written when a training run finishes.
 
 ## Trained tables
 
@@ -135,4 +191,4 @@ would bloat the repository. Instead:
 - [x] **Step 12** — plotting script for all figures
 - [x] **Step 13** — hyperparameter sweeps
 - [x] **Step 14** — Pygame UI
-- [ ] **Step 15** *(optional)* — web frontend + hosting, for a shareable playable demo.
+- [x] **Step 15** *(optional)* — web frontend + hosting, for a shareable playable demo.

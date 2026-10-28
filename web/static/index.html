@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Learn vs Search</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="floor" aria-hidden="true"></div>
+
+  <div id="offline" class="offline" hidden>
+    <strong>Can't reach the game server.</strong>
+    Start it with <code>python web/server.py</code>, then open
+    <code>http://127.0.0.1:5000</code> &mdash; don't open this HTML file directly.
+  </div>
+
+  <!-- ============ TITLE / MENU ============ -->
+  <section id="menu" class="screen">
+    <div class="menu-inner">
+      <div class="eyebrow">A CONNECT-4 EXPERIMENT</div>
+      <h1 class="logo-big">Learn <span class="vs">VS</span> Search</h1>
+      <p class="tagline">A self-taught Q-learning agent takes on classic minimax search.<br>
+        Play it yourself, or sit back and watch them fight.</p>
+
+      <div class="menu-section">
+        <h4>1 &middot; Choose your battle</h4>
+        <div id="modes" class="modes"></div>
+        <button id="swap" class="toggle">Swap who goes first: <b>OFF</b></button>
+      </div>
+
+      <div class="menu-section two">
+        <div>
+          <h4>2 &middot; Arena</h4>
+          <div id="seg-board" class="seg">
+            <button data-board="ttt">Tic-tac-toe</button>
+            <button data-board="5x4">Connect-4 &middot; 5&times;4</button>
+            <button data-board="5x5">Connect-4 &middot; 5&times;5</button>
+          </div>
+        </div>
+        <div>
+          <h4>3 &middot; Minimax difficulty</h4>
+          <div id="seg-diff" class="seg">
+            <button data-depth="2">Easy</button>
+            <button data-depth="4">Medium</button>
+            <button data-depth="6">Hard</button>
+          </div>
+        </div>
+      </div>
+      <div id="diff-hint" class="mini"></div>
+
+      <button id="start" class="start">START <span>&#9654;</span></button>
+      <div><button id="open-results" class="toggle">View results &amp; graphs</button></div>
+      <div class="menu-foot">
+        Built from scratch in Python &middot; minimax + alpha-beta vs tabular Q-learning &middot;
+        <a href="https://github.com/KaChxKC/Learn-Vs-Search" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <button id="menu-btn" class="hud-btn">&#9776; Menu</button>
+      <div class="hud-mid">
+        <div class="round">ROUND <b id="round">1</b></div>
+        <div class="hud-sub">Move <b id="moves">0</b> &nbsp;&bull;&nbsp; Draws <b id="draws">0</b></div>
+      </div>
+      <div class="hud-right">
+        <button id="graphs-btn" class="hud-btn">Graphs</button>
+        <button id="sound" class="hud-btn" title="Sound (S)">Sound: on</button>
+        <button id="fs" class="hud-btn" title="Fullscreen (F)">Fullscreen</button>
+      </div>
+    </div>
+
+    <div class="arena">
+      <div class="fighter red" id="f-red">
+        <div class="f-tag">RED &middot; MOVES FIRST</div>
+        <div class="avatar"><span id="av-red"></span></div>
+        <div class="f-name" id="nm-red"></div>
+        <div class="f-desc" id="ds-red"></div>
+        <div class="wins"><b id="sc-red">0</b><span>WINS</span></div>
+        <div class="think" id="th-red"></div>
+      </div>
+
+      <div class="center">
+        <div id="status" class="status">&hellip;</div>
+        <div id="board-wrap" class="board-wrap">
+          <div id="heads" class="heads"></div>
+          <div id="board" class="board"></div>
+        </div>
+        <div id="note" class="note"></div>
+        <div class="controls">
+          <button id="pause" class="pill">Pause</button>
+          <button id="step" class="pill" disabled>Step</button>
+          <div id="seg-speed" class="seg mini-seg">
+            <button data-speed="slow">Slow</button>
+            <button data-speed="normal">Normal</button>
+            <button data-speed="fast">Fast</button>
+          </div>
+          <button id="restart" class="pill primary">Restart</button>
+        </div>
+        <div class="hint">Keys: <kbd>1</kbd>&ndash;<kbd>5</kbd> drop a disc &nbsp; <kbd>R</kbd> rematch &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>M</kbd> menu</div>
+      </div>
+
+      <div class="fighter yellow" id="f-yellow">
+        <div class="f-tag">YELLOW</div>
+        <div class="avatar"><span id="av-yellow"></span></div>
+        <div class="f-name" id="nm-yellow"></div>
+        <div class="f-desc" id="ds-yellow"></div>
+        <div class="wins"><b id="sc-yellow">0</b><span>WINS</span></div>
+        <div class="think" id="th-yellow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS / GRAPHS ============ -->
+  <section id="results" class="screen" hidden>
+    <div class="res-inner">
+      <div class="res-top">
+        <button id="results-back" class="hud-btn">&larr; Back</button>
+        <div>
+          <h2 class="res-title">Results &amp; graphs</h2>
+          <p class="res-sub">Measured from the training runs. Click a graph to enlarge it.</p>
+        </div>
+      </div>
+      <div id="figs" class="figs"></div>
+    </div>
+  </section>
+
+  <div id="lightbox" class="lightbox" hidden><img id="lightbox-img" alt=""></div>
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

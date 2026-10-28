@@ -14,6 +14,23 @@ snapshots/
 # ...except a small whitelisted demo table, if we add one:
 !demo/*.pkl.gz
 
+# Experiment output that is only scratch (the CSVs in logs/ and figures in figures/ ARE tracked)
+logs/*.txt
+*.log
+
+# Reports, slides and prep documents (kept locally, not in the repo)
+*.docx
+*.pptx
+*.pdf
+
+# Office lock / temp files (created while a .docx/.pptx is open)
+~$*
+.~lock.*
+*.tmp
+
+# Local tool settings and secrets
+.env
+
 # OS / editor
 .DS_Store
 Thumbs.db
